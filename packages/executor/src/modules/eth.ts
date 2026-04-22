@@ -150,6 +150,13 @@ export class Eth {
     actualGas?: bigint;
     preOpGas: bigint;
   }> {
+    // Capture the simulation's maxFeePerGas BEFORE any mutation below.
+    // estimateUserOperationGas sets userOp.maxFeePerGas = 1 for simulation, and
+    // the pvgEstimator block further down may overwrite it with the real market
+    // price. `paid` was produced with the simulation value, so actualGas must
+    // divide by the captured value to be correct.
+    const simMaxFeePerGas = BigInt(userOp.maxFeePerGas);
+
     let { callGasLimit, verificationGasLimit, paymasterVerificationGasLimit } =
       this.calcVerificationGasAndCallGasLimit(
         userOp,
@@ -234,10 +241,12 @@ export class Eth {
       preVerificationGas,
       paymasterVerificationGasLimit,
       paymasterPostOpGasLimit,
-      // Raw simulation data — see estimateUserOperationGas for rationale
+      // Raw simulation total gas — `paid / maxFeePerGas` backs out total gas
+      // used during simulation. Correctness depends on using the simulation's
+      // maxFeePerGas (captured above) since `paid` was computed with it.
       actualGas:
-        estimates.executionResult.paid && userOp.maxFeePerGas
-          ? BigInt(estimates.executionResult.paid) / BigInt(userOp.maxFeePerGas)
+        estimates.executionResult.paid && simMaxFeePerGas
+          ? BigInt(estimates.executionResult.paid) / simMaxFeePerGas
           : undefined,
       preOpGas: BigInt(estimates.executionResult.preOpGas),
     };
