@@ -594,6 +594,22 @@ export class Eth {
 
     this.metrics?.useropsEstimated.inc();
 
+    // actualGas = preVerificationGas + preOpGas + callGasUsed + cglPenalty + postExecOverhead
+    //   where cglPenalty = (callGasLimit − callGasUsed) × 10%   if unused > 40_000
+    //                    = 0                                    otherwise
+    //   and   postExecOverhead = 30_000  (v0.8 EntryPoint post-execution fixed cost)
+    const actualGasUsed = (() => {
+      const pvg = BigInt(preVerificationGas);
+      const valGas = BigInt(preOpGas);
+      const cglUsed = BigInt(binarySearchCGL);
+      const cglLimit = BigInt(callGasLimit);
+      const cglUnused = cglLimit > cglUsed ? cglLimit - cglUsed : BigInt(0);
+      const cglPenalty =
+        cglUnused > BigInt(40000) ? (cglUnused * BigInt(10)) / BigInt(100) : BigInt(0);
+      const postExecOverhead = BigInt(30000);
+      return pvg + valGas + cglUsed + cglPenalty + postExecOverhead;
+    })();
+
     return {
       preVerificationGas,
       verificationGasLimit,
@@ -603,7 +619,7 @@ export class Eth {
       callGasLimit,
       maxFeePerGas: gasFee.maxFeePerGas,
       maxPriorityFeePerGas: gasFee.maxPriorityFeePerGas,
-      actualGas: totalGas,
+      actualGas: actualGasUsed,
       preOpGas: BigInt(preOpGas),
     };
   }
