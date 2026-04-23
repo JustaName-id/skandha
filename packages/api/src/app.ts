@@ -256,6 +256,13 @@ export class ApiApp {
       }
     }
 
+    // Return Skandha's adjusted maxFeePerGas — matches what UserOps actually pay.
+    if (method === "eth_gasPrice") {
+      const { maxFeePerGas } = await this.skandhaApi.getGasPrice();
+      const hex = "0x" + BigInt(maxFeePerGas).toString(16);
+      return { jsonrpc, id, result: hex };
+    }
+
     if (this.redirectRpc && method in RedirectedRPCMethods) {
       const body = await this.redirectApi.redirect(method, params);
       return { jsonrpc, id, ...body };
