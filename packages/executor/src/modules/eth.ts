@@ -59,8 +59,8 @@ export class Eth {
     private metrics: PerChainMetrics | null,
     private getNodeAPI: GetNodeAPI = () => null,
   ) {
-    // ["arbitrum", "arbitrumNova", "arbitrumSepolia"]
-    if ([42161, 42170, 421614].includes(this.chainId)) {
+    // ["arbitrum", "arbitrumNova", "arbitrumSepolia", "robinhood"]
+    if ([42161, 42170, 421614, 4663].includes(this.chainId)) {
       this.pvgEstimator = estimateArbitrumPVG(this.publicClient);
     }
 
