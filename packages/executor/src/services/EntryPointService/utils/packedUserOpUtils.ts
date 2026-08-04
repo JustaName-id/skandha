@@ -1,4 +1,7 @@
-import { AddressZero } from "@skandha/params/lib/index.js";
+import {
+  AddressZero,
+  INITCODE_EIP7702_MARKER,
+} from "@skandha/params/lib/index.js";
 import {
   UserOperation,
   PackedUserOperation,
@@ -176,7 +179,13 @@ export function packUserOp(op: UserOperation): PackedUserOperation {
       op.paymasterData
     );
   }
-  const factory = pad(op.factory ?? "0x", { dir: "right", size: 20 });
+  // The EIP-7702 marker must stay 2 bytes: paymasters (e.g. Pimlico's singleton)
+  // sign over keccak256(initCode), so padding it to 20 bytes invalidates their
+  // signature and the op reverts with AA34 at bundle time.
+  const factory =
+    op.factory?.toLowerCase() === INITCODE_EIP7702_MARKER
+      ? INITCODE_EIP7702_MARKER
+      : pad(op.factory ?? "0x", { dir: "right", size: 20 });
   return {
     sender: op.sender,
     nonce: BigInt(op.nonce),
